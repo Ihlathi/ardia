@@ -35,7 +35,7 @@ export type OpenPaneOptions = {
 };
 export type OpenPaneResult = { ok: true; tabId: string; splitId: string } | { ok: false; reason: "max" | "invalid" };
 
-export const MAX_SPLIT_PANES = 3;
+export const MAX_SPLIT_PANES = 4;
 
 const flatIds = new WeakMap<SplitSlot[], string[]>();
 

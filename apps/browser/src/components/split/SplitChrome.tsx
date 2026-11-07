@@ -3,6 +3,7 @@ import { Animated, PanResponder, StyleSheet, View } from "react-native";
 import { useTheme } from "../ui/theme";
 import { updateSplit } from "../../state/splits/actions";
 import { useDragFallbackPane } from "../../state/splits/hooks";
+import { MAX_SPLIT_PANES } from "../../state/splits/splits";
 import type { SplitView } from "../../state/browser/types";
 import { resize, type Divider, type Rect } from "../window/geometry";
 import { capsule, space, Symbol, Text, Toast, withAlpha } from "../ui";
@@ -100,7 +101,7 @@ export function DropTargets({ panes, origin }: { panes: Record<string, Rect>; or
   const lifted = useTabDrag((s) => (s.phase === "tab" ? s.lifted : null));
   const outside = useTabDrag((s) => s.phase === "tab" && s.outside);
   const target = useTabDrag((s) => (s.phase === "tab" ? s.target : null));
-  const full = Object.keys(panes).length >= 3;
+  const full = Object.keys(panes).length >= MAX_SPLIT_PANES;
   const fallback = useDragFallbackPane(dragging, panes, windowId);
   const candidates = useMemo((): [string, Rect][] => {
     if (fallback && dragging) return [[fallback, panes[dragging]!]];

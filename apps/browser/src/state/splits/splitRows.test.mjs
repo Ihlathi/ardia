@@ -27,6 +27,19 @@ function splitWindow() {
   return { w, a, b, c, d, splitId };
 }
 
+test("a split can grow to four panes in one root layout", () => {
+  reset();
+  const { w, b, c } = splitWindow();
+  const third = S().openSplitPane(w, { anchorTabId: c, url: "https://e.com/" });
+  const fourth = S().openSplitPane(w, { anchorTabId: third.tabId, url: "https://f.com/" });
+  const fifth = S().openSplitPane(w, { anchorTabId: fourth.tabId, url: "https://g.com/" });
+
+  assert.equal(third.ok, true);
+  assert.equal(fourth.ok, true);
+  assert.deepEqual(fifth, { ok: false, reason: "max" });
+  assert.deepEqual(splitTabIdsOf(S().splits[third.splitId]), [b, c, third.tabId, fourth.tabId]);
+});
+
 test("pinning one pane pins the whole split as one pinned row, and unpinning brings it back as one row", () => {
   reset();
   const { w, a, b, c, d, splitId } = splitWindow();
@@ -319,16 +332,18 @@ test("a link opened into a split's other pane takes that pane with its own tab a
   assert.deepEqual(Object.keys(S().groups), groups, "no group is made");
 });
 
-test("a full split takes the link in place of the pane after its page, and refuses a new pane without one", () => {
+test("a full four-pane split takes the link in place of the pane after its page, and refuses a new pane without one", () => {
   reset();
   const { w, a, b, c, d, splitId } = splitWindow();
   S().openSplitPane(w, { anchorTabId: c, tabId: d, side: "right" });
-  assert.deepEqual(splitTabIdsOf(S().splits[splitId]), [b, c, d]);
-  assert.deepEqual(S().openSplitPane(w, { anchorTabId: b, url: "https://e.com/", background: true }), { ok: false, reason: "max" });
-  const result = S().openSplitPane(w, { anchorTabId: b, url: "https://e.com/", background: true, inPlaceOf: c });
+  const e = S().openSplitPane(w, { anchorTabId: d, url: "https://e.com/", side: "right" });
+  assert.equal(e.ok, true);
+  assert.deepEqual(splitTabIdsOf(S().splits[splitId]), [b, c, d, e.tabId]);
+  assert.deepEqual(S().openSplitPane(w, { anchorTabId: b, url: "https://f.com/", background: true }), { ok: false, reason: "max" });
+  const result = S().openSplitPane(w, { anchorTabId: b, url: "https://f.com/", background: true, inPlaceOf: c });
   assert.equal(result.ok, true);
-  assert.deepEqual(splitTabIdsOf(S().splits[splitId]), [b, result.tabId, d]);
-  assert.deepEqual(S().windows[w].tabIds, [a, b, result.tabId, d, c]);
+  assert.deepEqual(splitTabIdsOf(S().splits[splitId]), [b, result.tabId, d, e.tabId]);
+  assert.deepEqual(S().windows[w].tabIds, [a, b, result.tabId, d, e.tabId, c]);
 });
 
 test("a link opened into a pinned two-pane split's other pane is pinned in its place, and the other window's copy follows", () => {
