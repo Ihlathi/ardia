@@ -106,7 +106,11 @@ export type TabGroup = {
   parentId?: string;
 };
 
-export type SplitSlot = { size: number; tabId: string } | { size: number; stack: [string, string]; stackSizes: [number, number] };
+export type SplitNested = { orientation: "horizontal" | "vertical"; slots: SplitSlot[] };
+export type SplitSlot =
+  | { size: number; tabId: string }
+  | { size: number; stack: [string, string]; stackSizes: [number, number] }
+  | { size: number; split: SplitNested };
 
 export type SplitView = {
   id: string;

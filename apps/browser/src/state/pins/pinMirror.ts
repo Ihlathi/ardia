@@ -3,7 +3,7 @@ import { changedIds } from "../browser/changes";
 import { ancestorIds, depthOf, orderSections, placeBlock, syncGroupOrder, withParent } from "../groups/groups";
 import { IDLE_LIVE, isIncognitoProfile, isPinnedRow, makeTab, newId, pinKeyOf, pinSection, TILE_PIN, without } from "../browser/model";
 import { ASLEEP, hasPage, holderOfPage } from "../tabs/pageSession";
-import { mapSlotIds, removeFromSplits, splitTabIds, stackAt } from "../splits/splits";
+import { mapSlotIds, removeFromSplits, splitTabIds } from "../splits/splits";
 import { sharedListTab, sharesTabs } from "../tabs/tabShare";
 import { removeTabs } from "../tabs/tabs";
 import type { BrowserWindow, SplitView, Tab, TabGroup } from "../browser/types";
@@ -27,7 +27,9 @@ function withSplits(s: Pick<BrowserState, "splits">, w: BrowserWindow, x: Sectio
   return { ...x, splits };
 }
 
-const splitSig = (v: PinnedSplit) => `S${splitTabIds(v).join("\u0003")}\u0001${v.orientation}\u0001${stackAt(v) < 0 ? "" : stackAt(v)}`;
+const slotSig = (slot: PinnedSplit["slots"][number]): string =>
+  "tabId" in slot ? `T${slot.tabId}` : "stack" in slot ? `K${slot.stack.join("\u0003")}` : `N${slot.split.orientation}[${slot.split.slots.map(slotSig).join("\u0002")}]`;
+const splitSig = (v: PinnedSplit) => `S${v.orientation}[${v.slots.map(slotSig).join("\u0002")}]`;
 
 function innermostPinned(s: Pick<BrowserState, "groups">, own: TabGroup[]): Map<string, TabGroup> {
   const inner = new Map<string, TabGroup>();
@@ -287,7 +289,7 @@ export function conform(s: BrowserState, windowId: string, profileId: string, sp
     const paneOf = new Map([...tiles, ...members].filter(([i]) => !isTile(i.tab)).map(([i, id]) => [pinKeyOf(i.tab), id]));
     const panes = new Set(paneOf.values());
     const wanted = spec.splits.map((v): PinnedSplit => ({ orientation: v.orientation, slots: mapSlotIds(v.slots, (k) => paneOf.get(k) ?? "") })).filter((v) => splitTabIds(v).every(Boolean));
-    const same = (v: SplitView, x: PinnedSplit) => splitTabIds(v).join() === splitTabIds(x).join() && v.orientation === x.orientation && stackAt(v) === stackAt(x);
+    const same = (v: SplitView, x: PinnedSplit) => splitSig(v) === splitSig(x);
     const stale = Object.values(splits).filter((v) => v.windowId === windowId && splitTabIds(v).every((id) => panes.has(id)) && !wanted.some((x) => same(v, x)));
     if (stale.length) splits = without(splits, stale.map((v) => v.id));
     for (const x of wanted) {

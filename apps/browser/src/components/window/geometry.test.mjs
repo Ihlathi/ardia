@@ -16,6 +16,32 @@ test("split panes sit the card's 9 pt apart and fill it to the last point, whate
   }
   const three = splitGeometry(split(["a", "b", "c"], [1 / 3, 1 / 3, 1 / 3]), 1001, 700).panes;
   assert.equal(three.c.x + three.c.width, 1001);
+  const four = splitGeometry(split(["a", "b", "c", "d"], [0.25, 0.25, 0.25, 0.25]), 1001, 700).panes;
+  assert.equal(four.d.x + four.d.width, 1001);
+  const mixed = splitGeometry(
+    {
+      id: "mixed",
+      orientation: "horizontal",
+      slots: [
+        { size: 0.5, tabId: "a" },
+        {
+          size: 0.5,
+          split: {
+            orientation: "vertical",
+            slots: [
+              { size: 0.5, tabId: "b" },
+              { size: 0.5, split: { orientation: "horizontal", slots: [{ size: 0.5, tabId: "c" }, { size: 0.5, tabId: "d" }] } },
+            ],
+          },
+        },
+      ],
+    },
+    1001,
+    700,
+  ).panes;
+  assert.equal(mixed.b.x > mixed.a.x, true);
+  assert.equal(mixed.c.y > mixed.b.y, true);
+  assert.equal(mixed.d.x > mixed.c.x, true);
   const tall = splitGeometry(split(["a", "b"], [0.5, 0.5], "vertical"), 900, 701).panes;
   assert.equal(tall.b.y + tall.b.height, 701);
 });

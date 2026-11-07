@@ -106,3 +106,33 @@ test("a version 7 split or parked split whose slots don't read is dropped, not h
   assert.deepEqual(Object.keys(S().splits), ["ok"]);
   assert.deepEqual(S().parkedPins.default.splits, []);
 });
+
+test("nested mixed split slots save and load without flattening", () => {
+  stub.docs.clear();
+  const doc = oldDocument(10);
+  doc.splits = [
+    {
+      id: "mixed",
+      windowId: "w1",
+      orientation: "horizontal",
+      slots: [
+        { size: 0.5, tabId: "a" },
+        {
+          size: 0.5,
+          split: {
+            orientation: "vertical",
+            slots: [
+              { size: 0.5, tabId: "b" },
+              { size: 0.5, split: { orientation: "horizontal", slots: [{ size: 0.5, tabId: "c" }, { size: 0.5, tabId: "d" }] } },
+            ],
+          },
+        },
+      ],
+    },
+  ];
+  stub.docs.set("session.json", JSON.stringify(doc));
+  S().hydrate(loadSession());
+  const mixed = S().splits.mixed;
+  assert.equal(mixed.slots[1].split.orientation, "vertical");
+  assert.equal(mixed.slots[1].split.slots[1].split.orientation, "horizontal");
+});
