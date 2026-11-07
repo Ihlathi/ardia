@@ -72,6 +72,10 @@ const slotFromDisk = (v: unknown): SplitSlot | null => {
   if (!isFields(v) || !isSize(v.size)) return null;
   if (isString(v.tabId)) return { size: v.size, tabId: v.tabId };
   if (isStringList(v.stack) && v.stack.length === 2) return { size: v.size, stack: [v.stack[0]!, v.stack[1]!], stackSizes: sizesOr(v.stackSizes, 2) as [number, number] };
+  if (isFields(v.split) && (v.split.orientation === "horizontal" || v.split.orientation === "vertical")) {
+    const slots = slotsFromDisk(v.split.slots);
+    return slots ? { size: v.size, split: { orientation: v.split.orientation, slots } } : null;
+  }
   return null;
 };
 export const slotsFromDisk = (v: unknown): SplitSlot[] | null => {

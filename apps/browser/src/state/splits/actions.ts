@@ -4,7 +4,7 @@ import { closeTab } from "../browser/actions";
 import { menuShortcut } from "../commands/commandShortcuts";
 import { storeAction, useBrowser } from "../browser/store";
 import { activeTabId } from "../browser/model";
-import { isStacked, MAX_SPLIT_PANES, type OpenPaneOptions, splitOf, type SplitSide, splitTabIds, splitTabIdsOf } from "./splits";
+import { MAX_SPLIT_PANES, type OpenPaneOptions, splitOf, type SplitSide, splitTabIds, splitTabIdsOf } from "./splits";
 import type { AdoptId } from "../browser/types";
 
 const store = () => useBrowser.getState();
@@ -58,18 +58,19 @@ export async function showSplitMenu(tabId: string) {
   const split = splitOf(s, tabId);
   const tab = s.tabs[tabId];
   if (!split || !tab) return;
-  const horizontal = split.orientation === "horizontal";
   const index = splitTabIds(split).indexOf(tabId);
   const full = splitTabIds(split).length >= MAX_SPLIT_PANES;
-  const stacked = isStacked(split, tabId);
+  const add = (id: string, title: string, symbol: string): MenuItem => ({ id, title, symbol, enabled: !full });
   const items: MenuItem[] = [
-    { id: "add", title: horizontal ? "Add Vertical Split View" : "Add Horizontal Split View", symbol: horizontal ? "rectangle.split.2x1" : "rectangle.split.1x2", enabled: !full, ...menuShortcut("openSplitPane") },
-    { id: "bottom", title: horizontal ? "Add Bottom Split" : "Add Right Split", symbol: horizontal ? "rectangle.bottomhalf.inset.filled" : "rectangle.righthalf.inset.filled", enabled: !full && !stacked },
+    { ...add("left", "Add Left Split", "rectangle.lefthalf.inset.filled"), ...menuShortcut("openSplitPane") },
+    add("right", "Add Right Split", "rectangle.righthalf.inset.filled"),
+    add("top", "Add Top Split", "rectangle.tophalf.inset.filled"),
+    add("bottom", "Add Bottom Split", "rectangle.bottomhalf.inset.filled"),
     { separator: true },
-    { id: "left", title: horizontal ? "Move Pane Left" : "Move Pane Up", symbol: "rectangle.lefthalf.inset.filled.arrow.left", enabled: index > 0 },
-    { id: "right", title: horizontal ? "Move Pane Right" : "Move Pane Down", symbol: "rectangle.righthalf.inset.filled.arrow.right", enabled: index < splitTabIds(split).length - 1 },
-    { id: "flip", title: "Flip Split View", symbol: horizontal ? "arrow.left.arrow.right" : "arrow.up.arrow.down" },
-    { id: "convert", title: horizontal ? "Convert to Vertical Split View" : "Convert to Horizontal Split View", symbol: horizontal ? "rectangle.split.1x2" : "rectangle.split.2x1" },
+    { id: "moveLeft", title: "Move Pane Left", symbol: "rectangle.lefthalf.inset.filled.arrow.left", enabled: index > 0 },
+    { id: "moveRight", title: "Move Pane Right", symbol: "rectangle.righthalf.inset.filled.arrow.right", enabled: index < splitTabIds(split).length - 1 },
+    { id: "flip", title: "Flip Split View", symbol: "arrow.left.arrow.right" },
+    { id: "convert", title: "Convert Root Split Orientation", symbol: "rectangle.split.2x1" },
     { separator: true },
     { id: "remove", title: "Remove from Split View", symbol: "rectangle.portrait.and.arrow.right" },
     { id: "separate", title: "Separate All Tabs", symbol: "rectangle.split.3x1" },
@@ -79,13 +80,14 @@ export async function showSplitMenu(tabId: string) {
   const choice = await showMenu(items);
   const st = store();
   switch (choice) {
-    case "add":
-      return void openSplitPane(tab.windowId, { anchorTabId: tabId, side: horizontal ? "right" : "bottom" });
-    case "bottom":
-      return void openSplitPane(tab.windowId, { anchorTabId: tabId, side: horizontal ? "bottom" : "right" });
     case "left":
-      return st.movePane(tabId, -1);
     case "right":
+    case "top":
+    case "bottom":
+      return void openSplitPane(tab.windowId, { anchorTabId: tabId, side: choice });
+    case "moveLeft":
+      return st.movePane(tabId, -1);
+    case "moveRight":
       return st.movePane(tabId, 1);
     case "flip":
       return st.flipSplit(split.id);

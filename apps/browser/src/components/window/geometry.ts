@@ -1,12 +1,12 @@
 import { layout } from "../ui/theme";
-import type { SplitView } from "../../state/browser/types";
+import type { SplitNested, SplitSlot, SplitView } from "../../state/browser/types";
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
 const PANE_GAP = layout.cardInset;
 const MIN_PANE = 220;
 
-export type Divider = { kind: "root"; index: number; rect: Rect; vertical: boolean } | { kind: "stack"; rect: Rect; vertical: boolean };
+export type Divider = { path: number[]; index: number; rect: Rect; vertical: boolean; total: number };
 
 type SplitGeometry = { panes: Record<string, Rect>; dividers: Divider[] };
 
@@ -24,38 +24,34 @@ function cut(total: number, sizes: number[], gap: number): { start: number; size
 }
 
 export function splitGeometry(split: SplitView, width: number, height: number, gap = PANE_GAP): SplitGeometry {
-  const horizontal = split.orientation === "horizontal";
-  const slots = split.slots;
-  const sizes = slots.map((slot) => slot.size);
   const panes: Record<string, Rect> = {};
   const dividers: Divider[] = [];
-  const main = cut(horizontal ? width : height, sizes, gap);
-  slots.forEach((slot, i) => {
-    const { start, size } = main[i]!;
-    const slotRect: Rect = horizontal ? { x: start, y: 0, width: size, height } : { x: 0, y: start, width, height: size };
-    if (!("stack" in slot)) panes[slot.tabId] = slotRect;
-    else {
-      const inner = cut(horizontal ? slotRect.height : slotRect.width, slot.stackSizes, gap);
-      slot.stack.forEach((id, j) => {
-        const { start: s, size: z } = inner[j]!;
-        panes[id] = horizontal ? { ...slotRect, y: s, height: z } : { ...slotRect, x: s, width: z };
-      });
-      const d = inner[0]!;
-      dividers.push({
-        kind: "stack",
-        vertical: !horizontal,
-        rect: horizontal ? { x: slotRect.x, y: d.size, width: slotRect.width, height: gap } : { x: d.size, y: slotRect.y, width: gap, height: slotRect.height },
-      });
-    }
-    if (i < slots.length - 1) {
-      dividers.push({
-        kind: "root",
-        index: i,
-        vertical: horizontal,
-        rect: horizontal ? { x: start + size, y: 0, width: gap, height } : { x: 0, y: start + size, width, height: gap },
-      });
-    }
-  });
+  const nested = (slot: SplitSlot, parent: SplitView["orientation"]): SplitNested | null => {
+    if ("split" in slot) return slot.split;
+    if ("stack" in slot) return { orientation: parent === "horizontal" ? "vertical" : "horizontal", slots: slot.stack.map((tabId, i) => ({ tabId, size: slot.stackSizes[i]! })) };
+    return null;
+  };
+  const visit = (orientation: SplitView["orientation"], slots: SplitSlot[], rect: Rect, path: number[]) => {
+    const horizontal = orientation === "horizontal";
+    const main = cut(horizontal ? rect.width : rect.height, slots.map((slot) => slot.size), gap);
+    slots.forEach((slot, i) => {
+      const { start, size } = main[i]!;
+      const childRect = horizontal ? { x: rect.x + start, y: rect.y, width: size, height: rect.height } : { x: rect.x, y: rect.y + start, width: rect.width, height: size };
+      const child = nested(slot, orientation);
+      if ("tabId" in slot) panes[slot.tabId] = childRect;
+      else if (child) visit(child.orientation, child.slots, childRect, [...path, i]);
+      if (i < slots.length - 1) {
+        dividers.push({
+          path,
+          index: i,
+          vertical: horizontal,
+          total: horizontal ? rect.width : rect.height,
+          rect: horizontal ? { x: childRect.x + childRect.width, y: rect.y, width: gap, height: rect.height } : { x: rect.x, y: childRect.y + childRect.height, width: rect.width, height: gap },
+        });
+      }
+    });
+  };
+  visit(split.orientation, split.slots, { x: 0, y: 0, width, height }, []);
   return { panes, dividers };
 }
 

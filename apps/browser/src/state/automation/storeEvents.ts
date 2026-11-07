@@ -4,6 +4,7 @@ import { usePages } from "../tabs/pageState";
 import { focusedWindowOf } from "../windows/ui";
 import { eligibleKind, isEligibleTab, shownPage } from "./automationWindows";
 import type { AutomationEventName } from "./eventNames";
+import { splitTabIds } from "../splits/splits";
 
 export type EventSend = (name: AutomationEventName, data: Record<string, unknown>) => void;
 
@@ -21,7 +22,7 @@ function peekData(s: BrowserState, windowId: string) {
   return { windowId, tabId: peek.tabId, profile: t.profileId, sourceTabId: peek.sourceId, ...shownPage(t) };
 }
 
-const splitTabs = (s: BrowserState, id: string) => s.splits[id]!.slots.flatMap((slot) => ("tabId" in slot ? [slot.tabId] : slot.stack));
+const splitTabs = (s: BrowserState, id: string) => splitTabIds(s.splits[id]!);
 
 export function diffMore(s: BrowserState, prev: BrowserState, send: EventSend, wants: ReadonlySet<string>) {
   if (s.windows !== prev.windows) {

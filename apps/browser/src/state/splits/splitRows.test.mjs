@@ -40,6 +40,23 @@ test("a split can grow to four panes in one root layout", () => {
   assert.deepEqual(splitTabIdsOf(S().splits[third.splitId]), [b, c, third.tabId, fourth.tabId]);
 });
 
+test("a split can mix horizontal and vertical branches around the target pane", () => {
+  reset();
+  const { w, b, c } = splitWindow();
+  const bottom = S().openSplitPane(w, { anchorTabId: c, url: "https://e.com/", side: "bottom" });
+  const left = S().openSplitPane(w, { anchorTabId: bottom.tabId, url: "https://f.com/", side: "left" });
+
+  assert.equal(bottom.ok, true);
+  assert.equal(left.ok, true);
+  const root = S().splits[bottom.splitId];
+  assert.equal(root.orientation, "horizontal");
+  assert.equal("split" in root.slots[1], true);
+  assert.equal(root.slots[1].split.orientation, "vertical");
+  assert.equal("split" in root.slots[1].split.slots[1], true);
+  assert.equal(root.slots[1].split.slots[1].split.orientation, "horizontal");
+  assert.deepEqual(splitTabIdsOf(root), [b, c, left.tabId, bottom.tabId]);
+});
+
 test("pinning one pane pins the whole split as one pinned row, and unpinning brings it back as one row", () => {
   reset();
   const { w, a, b, c, d, splitId } = splitWindow();
