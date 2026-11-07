@@ -225,6 +225,11 @@ list one `…/release-notes#<version>` page; a second launch opens none.
 releases the commit it runs on, so first commit and push the version bump and the notes (steps 1 and 2), and publish
 the engine if `engine/` changed (below).
 
+`.github/workflows/commit-build.yml` runs for every pushed commit and can also be started from Actions. It builds the
+exact commit on `xcode-27`, fetches the matching prebuilt engine, and uploads `Ardia-<short commit>.zip` plus
+`build-info.txt` as a 14-day artifact named `ardia-commit-<full commit>`. Download that artifact from the workflow run
+to test the unsigned ad hoc build; it does not publish a release or update feed.
+
 - **preflight** checks the version against the channel, `MARKETING_VERSION`, the notes file and that `v<version>` isn't
   out yet.
 - **checks**: `pnpm typecheck`, `pnpm test`, `pnpm shaders:check`.
